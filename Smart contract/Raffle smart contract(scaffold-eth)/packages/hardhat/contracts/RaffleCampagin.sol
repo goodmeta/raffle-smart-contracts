@@ -3,8 +3,7 @@ pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "./GetRandomNumber.sol";
-import "./SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /// @title TicketNFT contract interface
 interface ITicketNFT {
@@ -12,10 +11,12 @@ interface ITicketNFT {
 }
 
 /// @title RaffleCampaign
-contract RaffleCampaign is Ownable, RandomNumberConsumer {
+contract RaffleCampaign is Ownable {
 
+    /// @dev safemath library
     using SafeMath for uint256;
-
+    
+    /// @dev declare ticketNFT of ITicketNFT interface
     ITicketNFT ticketNFT;
 
     /// @notice raffle's name
@@ -62,8 +63,8 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
     mapping (address => uint) public ownerTicketCount;
 
     /// @dev Events of this contract
-    event CreateCampaign(bool finished);
-    event TicketBought(uint ticketNum, uint256 tokenId);
+    event CreateCampaign(bool finished, address tokenaddress);
+    event TicketBought(uint ticketNum, uint256 tokenId, string tokenUri);
     event TicketDrawn(uint ticketId, uint ticketNum);
     event DeleteCampaign(bool finished);
 
@@ -73,8 +74,21 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
         _;
     }
 
+    /// @dev modifier to confirm campaign period
+    modifier fixedTimeline() {
+        require(block.timestamp > campaignStart && block.timestamp < campaignEnd, "User can't buy ticket.");
+        _;
+    }
+
+    /// @dev modifier to confirm manager can draw tickets
+    modifier isDrawTicket() {
+        require(tickets.length >= 1 && block.timestamp > campaignEnd, "Manager can't draw ticket.");
+        _;
+    }
+
     /// @notice this contract constructor
-    constructor(string memory _raffleName, string memory _influencer, string memory _raffleDescription, uint _campaignStart, uint _campaignEnd, uint _ticketPrice, uint _totalTickets, uint _totalWinners, address _ticketNFT) onlyOwner {
+    /// @param _ticketNFT is TicketNFT contract address.
+    constructor(string memory _raffleName, string memory _influencer, string memory _raffleDescription, uint _campaignStart, uint _campaignEnd, uint _ticketPrice, uint _totalTickets, uint _totalWinners, address _ticketNFT) {
         require(_campaignStart < _campaignEnd, "Input correct campaign time.");
         require(_totalTickets > 1 && _totalTickets < 25000, "Total tickets range is 1 ~ 25000.");
         require(_totalTickets > _totalWinners, "Total tickets should be more than total winners.");
@@ -93,23 +107,25 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
 
         ticketNFT = ITicketNFT(_ticketNFT);
 
-        emit CreateCampaign(campaignFinished);
+        emit CreateCampaign(campaignFinished, _ticketNFT);
     }
 
     /// @notice forwarded in {IERC721Receiver-onERC721Received} to contract recipients.
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data) external pure returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes memory) external pure returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 
     /**
     @notice function to buy a ticket.
-    @dev only users not manager.
+    @dev only users not managers.
     @param _ticketNum is ticket's number to be bought by user.
+    @param _tokenUri is ticket NFT ipfs url.
     */
-    function buyTicket(uint _ticketNum, string memory _tokenUri) public onlyOwner finishedCampaign(campaignFinished) {
+    function buyTicket(uint _ticketNum, string memory _tokenUri) public fixedTimeline finishedCampaign(campaignFinished) {
         require(ticketOwner[_ticketNum] == address(0), "One ticket can't be sold more than twice.");
         require(manager != msg.sender, "Manager can't buy ticket.");
         require(ownerTicketCount[msg.sender] < maxBuyAmount / ticketPrice, "Number of tickets one user can buy is limited.");
+        require(tickets.length < totalTickets, "All the tickets were sold.");
         
         tickets.push(_ticketNum);
         ticketOwner[_ticketNum] = msg.sender;
@@ -117,7 +133,7 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
 
         uint256 _tokenId = ticketNFT.mintNFT(_tokenUri);
 
-        emit TicketBought(_ticketNum, _tokenId);
+        emit TicketBought(_ticketNum, _tokenId, _tokenUri);
     }
 
     /**
@@ -138,7 +154,7 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
     @dev only manager.
     @param _ticketNum is a bought ticket number to be drawn by manager.
     */
-    function manualDrawTicket(uint _ticketNum) public onlyOwner finishedCampaign(campaignFinished) {
+    function manualDrawTicket(uint _ticketNum) public onlyOwner isDrawTicket finishedCampaign(campaignFinished) {
         uint idx;
         for (uint id = 0; id < tickets.length; id++) {
             if (tickets[id] == _ticketNum) {
@@ -155,12 +171,13 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
     @notice function to draw a ticket randomly.
     @dev only manager.
     */
-    function _autoDrawnTicket() internal onlyOwner finishedCampaign(campaignFinished) {
+    function autoDrawnTicket() public onlyOwner isDrawTicket finishedCampaign(campaignFinished) {
         uint id = _randomTicketId();
-        drawnTickets.push(tickets[id]);
+        uint drawnTicketNum = tickets[id];
+        drawnTickets.push(drawnTicketNum);
         _removeTicket(id);
 
-        emit TicketDrawn(id, tickets[id]);
+        emit TicketDrawn(id, drawnTicketNum);
     }
 
     /**
@@ -169,6 +186,7 @@ contract RaffleCampaign is Ownable, RandomNumberConsumer {
     */
     function _removeTicket(uint _ticketId) internal {
         require(_ticketId < tickets.length, "Tickets array index is out of bound.");
+        
         for (uint i = _ticketId; i < tickets.length - 1; i++) {
             tickets[i] = tickets[i+1];
         }
