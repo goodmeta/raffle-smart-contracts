@@ -17,11 +17,12 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
+require("dotenv").config();
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
-//
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
+const mnemonic = process.env.mnemonic;
 
 module.exports = {
   /**
@@ -33,19 +34,35 @@ module.exports = {
    *
    * $ truffle test --network <network-name>
    */
-
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
-    //
     development: {
-      host: "127.0.0.1", // Localhost (default: none)
-      port: 7545, // Standard Ethereum port (default: none)
-      network_id: "*", // Any network (default: none)
+     host: "127.0.0.1",     // Localhost (default: none)
+     port: 8545,            // Standard Ethereum port (default: none)
+     network_id: "*",       // Any network (default: none)
     },
+
+    rinkeby: {
+      // Special function to setup the provider
+      // networkCheckTimeout: 10000,
+      provider: function () {
+        // Setting the provider with the Infura Rinkeby address and Token
+        return new HDWalletProvider(mnemonic, "wss://rinkeby.infura.io/ws/v3/79e3c8988e9740fd916cd8377efe4864")
+      },
+      network_id: 4,
+      gas: 5000000,
+      gasPrice: 45000000000,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: false,
+      websocket: true,
+      timeoutBlocks: 50000,
+      networkCheckTimeout: 1000000
+    }
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -81,17 +98,16 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.8.10", // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.8.3",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
-      settings: {
-        // See the solidity docs for advice about optimization and evmVersion
+      settings: {          // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
-          enabled: false,
-          runs: 200,
-        },
-        evmVersion: "byzantium",
-      },
-    },
+          enabled: true,
+          runs: 200
+        }
+      //  evmVersion: "byzantium"
+      }
+    }
   },
 
   // Truffle DB is currently disabled by default; to enable it, change enabled:
@@ -101,17 +117,17 @@ module.exports = {
   // NOTE: It is not possible to migrate your contracts to truffle DB and you should
   // make a backup of your artifacts to a safe location before enabling this feature.
   //
-  // After you backed up your artifacts you can utilize db by running migrate as follows:
+  // After you backed up your artifacts you can utilize db by running migrate as follows: 
   // $ truffle migrate --reset --compile-all
   //
   // db: {
-  // enabled: false,
-  // host: "127.0.0.1",
-  // adapter: {
-  //   name: "sqlite",
-  //   settings: {
-  //     directory: ".db"
-  //   }
-  // }
+    // enabled: false,
+    // host: "127.0.0.1",
+    // adapter: {
+    //   name: "sqlite",
+    //   settings: {
+    //     directory: ".db"
+    //   }
+    // }
   // }
 };
