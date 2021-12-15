@@ -26,7 +26,8 @@ And learn more here: https://www.npmjs.com/package/hardhat-deploy
 const main = async () => {
   console.log("\n\n 📡 Deploying...\n");
 
-  const yourContract = await deploy("YourContract"); // <-- add in constructor args like line 19 vvvv
+  const TicketNFT = await deploy("TicketNFT"); // <-- add in constructor args like line 19 vvvv
+  const RaffleCampaign = await deploy("RaffleCampaign");
   // use for local token bridging
   // const mockToken = await deploy("MockERC20") // <-- add in constructor args like line 19 vvvv
 

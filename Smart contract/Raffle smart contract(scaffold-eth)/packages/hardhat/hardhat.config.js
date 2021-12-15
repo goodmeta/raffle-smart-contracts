@@ -26,7 +26,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "rinkeby";
+const defaultNetwork = "localhost";
 
 const mainnetGwei = 21;
 
@@ -65,7 +65,7 @@ module.exports = {
   solidity: "0.8.3",
   networks: {
     localhost: {
-      url: "http://localhost:7545",
+      url: "http://localhost:8545",
       /*      
         notice no mnemonic here? it will just use account 0 of the hardhat node to deploy
         (you can put in a mnemonic here to set the deployer locally)
