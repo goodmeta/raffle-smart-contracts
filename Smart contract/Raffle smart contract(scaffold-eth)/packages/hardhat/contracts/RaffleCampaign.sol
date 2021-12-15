@@ -161,13 +161,16 @@ contract RaffleCampaign is Ownable {
     */
     function manualDrawTicket(uint _ticketNum) public onlyOwner isDrawTicket finishedCampaign(campaignFinished) {
         uint idx;
+        uint isMatched;
         for (uint id = 0; id < tickets.length; id++) {
             if (tickets[id] == _ticketNum) {
                 drawnTickets.push(tickets[id]);
                 _removeTicket(id);
                 idx = id;
+                isMatched = isMatched.add(1);
             }
         }
+        require(isMatched == 1, "There are no matches.");
         
         // emit TicketDrawn event
         emit TicketDrawn(idx, _ticketNum);
