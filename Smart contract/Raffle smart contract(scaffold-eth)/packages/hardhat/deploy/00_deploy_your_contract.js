@@ -9,7 +9,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  await deploy("YourContract", {
+  await deploy("TicketNFT", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
     // args: [ "Hello", ethers.utils.parseEther("1.5") ],
@@ -17,7 +17,18 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   });
 
   // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
+  const TicketNFT = await ethers.getContract("TicketNFT", deployer);
+  
+  await deploy("RaffleCampaign", {
+    // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
+    from: deployer,
+    args: [ "aaa", "bbb", "ccc", 234454567, 987667845432, 50, 20000, 100, TicketNFT.address ],
+    log: true,
+  });
+
+  // Getting a previously deployed contract
+  const RaffleCampaign = await ethers.getContract("RaffleCampaign", deployer);
+
   /*  await YourContract.setPurpose("Hello");
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
@@ -55,10 +66,16 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   // You don't want to verify on localhost
   if (chainId !== localChainId) {
     await run("verify:verify", {
-      address: YourContract.address,
-      contract: "contracts/YourContract.sol:YourContract",
+      address: TicketNFT.address,
+      contract: "contracts/ticketNFT.sol:TicketNFT",
       contractArguments: [],
+    });
+
+    await run("verify:verify", {
+      address: RaffleCampaign.address,
+      contract: "contracts/RaffleCampaign.sol:RaffleCampaign",
+      contractArguments: ["aaa", "bbb", "ccc", 1234567, 98765432, 50, 20000, 100, TicketNFT.address],
     });
   }
 };
-module.exports.tags = ["YourContract"];
+module.exports.tags = ["TicketNFT", "RaffleCampaign"];

@@ -58,11 +58,12 @@ contract RaffleCampaign is Ownable {
     /// @notice campaign manager's address
     address public manager;
 
-    /// @dev mappings of this contract
+    /// @dev specified mappings of this contract
     mapping (uint => address) public ticketOwner;
     mapping (address => uint) public ownerTicketCount;
+    mapping (uint => string) public tokenUriMap;
 
-    /// @dev Events of this contract
+    /// @dev Events of each function
     event CreateCampaign(bool finished, address tokenaddress);
     event TicketBought(uint ticketNum, uint256 tokenId, string tokenUri);
     event TicketDrawn(uint ticketId, uint ticketNum);
@@ -107,6 +108,7 @@ contract RaffleCampaign is Ownable {
 
         ticketNFT = ITicketNFT(_ticketNFT);
 
+        // emit CreateCampaign event
         emit CreateCampaign(campaignFinished, _ticketNFT);
     }
 
@@ -128,11 +130,13 @@ contract RaffleCampaign is Ownable {
         require(tickets.length < totalTickets, "All the tickets were sold.");
         
         tickets.push(_ticketNum);
+        tokenUriMap[_ticketNum] = _tokenUri;
         ticketOwner[_ticketNum] = msg.sender;
         ownerTicketCount[msg.sender] = ownerTicketCount[msg.sender].add(1);
 
         uint256 _tokenId = ticketNFT.mintNFT(_tokenUri);
 
+        // emit TicketBought event
         emit TicketBought(_ticketNum, _tokenId, _tokenUri);
     }
 
@@ -146,6 +150,7 @@ contract RaffleCampaign is Ownable {
 
         campaignFinished = true;
 
+        // emit DeleteCampaign event
         emit DeleteCampaign(campaignFinished);
     }
 
@@ -156,14 +161,18 @@ contract RaffleCampaign is Ownable {
     */
     function manualDrawTicket(uint _ticketNum) public onlyOwner isDrawTicket finishedCampaign(campaignFinished) {
         uint idx;
+        uint isMatched;
         for (uint id = 0; id < tickets.length; id++) {
             if (tickets[id] == _ticketNum) {
                 drawnTickets.push(tickets[id]);
                 _removeTicket(id);
                 idx = id;
+                isMatched = isMatched.add(1);
             }
         }
+        require(isMatched == 1, "There are no matches.");
         
+        // emit TicketDrawn event
         emit TicketDrawn(idx, _ticketNum);
     }
 
@@ -177,6 +186,7 @@ contract RaffleCampaign is Ownable {
         drawnTickets.push(drawnTicketNum);
         _removeTicket(id);
 
+        // emit TicketDrawn event
         emit TicketDrawn(id, drawnTicketNum);
     }
 
@@ -249,6 +259,12 @@ contract RaffleCampaign is Ownable {
     /// @param _owner is one owner's address.
     function getOwnerTicketsPrice(address _owner) public view returns (uint) {
         return ticketPrice * ownerTicketCount[_owner];
+    }
+
+    /// @notice function to get one ticket's token uri.
+    /// @param _ticketNum is one ticket's number.
+    function getTicketUri(uint _ticketNum) public view returns (string memory) {
+        return tokenUriMap[_ticketNum];
     }
 
     /// @notice function to get remained tickets count.
